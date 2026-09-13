@@ -1,6 +1,6 @@
 # Squigit Packages
 
-Signed APT and DNF metadata for Squigit Linux sidecar packages.
+Release assets and signed package metadata for Squigit native executables.
 
 ## Install on Debian-based Linux
 
@@ -26,4 +26,19 @@ sudo dnf install -y squigit-ocr squigit-cli
 - DNF metadata root: `rpm/`
 - Public key: `keys/distribution.asc`
 - Current Debian package filenames/tags are tracked in `metadata/package-assets.env`
-- Package binaries are served from `squigit-org/squigit` GitHub Releases.
+- OCR package binaries are built by `squigit-org/squigit` and published from this repository's GitHub Releases.
+
+## OCR Release Automation
+
+The OCR release workflow dispatches the four-platform runtime matrix in
+`squigit-org/squigit`, downloads its measured runtime artifacts, and owns the
+Homebrew, Winget, APT, and DNF release steps in this repository.
+
+Configure these Actions secrets before dispatching a release:
+
+- `SQUIGIT_GITHUB_TOKEN`: fine-grained PAT for `squigit-org/squigit` with
+  Actions read/write and Contents read permissions.
+- `TAP_GITHUB_TOKEN`: write access to `squigit-org/homebrew-tap`.
+- `WINGET_CREATE_GITHUB_TOKEN`: token used by `wingetcreate` when submitting an update.
+- `LINUX_PACKAGES_GPG_PRIVATE_KEY` and `LINUX_PACKAGES_GPG_PASSPHRASE`: the
+  existing distribution signing key used by APT and DNF.
