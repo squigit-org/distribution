@@ -2,14 +2,14 @@ name: "Publish Linux OCR Repositories"
 description: "Updates signed APT and DNF metadata for Squigit OCR"
 inputs:
   ocr-repository-token:
-    description: "GitHub token with write access to the OCR repository"
+    description: "GitHub token with write access to the distribution repository"
     required: true
   ocr-repository:
-    description: "OCR repository slug"
+    description: "Distribution repository slug"
     required: false
-    default: "squigit-org/squigit-ocr"
+    default: "squigit-org/distribution"
   ocr-repository-branch:
-    description: "OCR repository branch to update"
+    description: "Distribution repository branch to update"
     required: false
     default: "main"
   ocr-version:
@@ -18,7 +18,7 @@ inputs:
   source-release-repo:
     description: "Source repository hosting OCR release artifacts"
     required: false
-    default: "squigit-org/squigit"
+    default: "squigit-org/distribution"
   source-release-tag:
     description: "Release tag hosting OCR artifacts"
     required: true
@@ -41,14 +41,14 @@ inputs:
   pages-base-url:
     description: "Public GitHub Pages base URL for OCR distribution"
     required: false
-    default: "https://squigit-org.github.io/squigit-ocr"
+    default: "https://squigit-org.github.io/distribution"
   apt-suite:
     description: "APT suite name"
     required: false
     default: "stable"
 outputs:
   ocr-repository-url:
-    description: "OCR repository URL"
+    description: "Distribution repository URL"
     value: ${{ steps.publish.outputs.ocr_repository_url }}
   apt-source:
     description: "APT source line"
@@ -57,7 +57,7 @@ outputs:
     description: "DNF repository file URL"
     value: ${{ steps.publish.outputs.dnf_repo_url }}
   ocr-repository-sha:
-    description: "Commit SHA of the updated OCR repository"
+    description: "Commit SHA of the updated distribution repository"
     value: ${{ steps.publish.outputs.ocr_repository_sha }}
 runs:
   using: "composite"
