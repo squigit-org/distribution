@@ -1,11 +1,14 @@
 name: "Build Linux OCR"
-description: "Builds .deb and .rpm artifacts from the OCR runtime directory"
+description: "Builds .deb and .rpm artifacts from their platform runtimes"
 inputs:
   ocr-version:
     description: "Semantic version used for OCR metadata"
     required: true
-  runtime-dir:
-    description: "OCR runtime directory path"
+  deb-runtime-dir:
+    description: "Ubuntu OCR runtime directory used for the Debian package"
+    required: true
+  rpm-runtime-dir:
+    description: "Fedora OCR runtime directory used for the RPM package"
     required: true
   binary-name:
     description: "Executable file name to expose on PATH"
@@ -29,38 +32,20 @@ outputs:
   deb-path:
     description: "Absolute path to the built .deb artifact"
     value: ${{ steps.build.outputs.deb_path }}
-  deb_path:
-    description: "Absolute path to the built .deb artifact (underscore alias)"
-    value: ${{ steps.build.outputs.deb_path }}
   deb-name:
     description: "Debian artifact file name"
-    value: ${{ steps.build.outputs.deb_name }}
-  deb_name:
-    description: "Debian artifact file name (underscore alias)"
     value: ${{ steps.build.outputs.deb_name }}
   deb-sha256:
     description: "Debian artifact SHA256"
     value: ${{ steps.build.outputs.deb_sha256 }}
-  deb_sha256:
-    description: "Debian artifact SHA256 (underscore alias)"
-    value: ${{ steps.build.outputs.deb_sha256 }}
   rpm-path:
     description: "Absolute path to the built .rpm artifact"
-    value: ${{ steps.build.outputs.rpm_path }}
-  rpm_path:
-    description: "Absolute path to the built .rpm artifact (underscore alias)"
     value: ${{ steps.build.outputs.rpm_path }}
   rpm-name:
     description: "RPM artifact file name"
     value: ${{ steps.build.outputs.rpm_name }}
-  rpm_name:
-    description: "RPM artifact file name (underscore alias)"
-    value: ${{ steps.build.outputs.rpm_name }}
   rpm-sha256:
     description: "RPM artifact SHA256"
-    value: ${{ steps.build.outputs.rpm_sha256 }}
-  rpm_sha256:
-    description: "RPM artifact SHA256 (underscore alias)"
     value: ${{ steps.build.outputs.rpm_sha256 }}
 runs:
   using: "composite"
@@ -70,7 +55,8 @@ runs:
       shell: bash
       env:
         OCR_VERSION: ${{ inputs.ocr-version }}
-        RUNTIME_DIR: ${{ inputs.runtime-dir }}
+        DEB_RUNTIME_DIR: ${{ inputs.deb-runtime-dir }}
+        RPM_RUNTIME_DIR: ${{ inputs.rpm-runtime-dir }}
         BINARY_NAME: ${{ inputs.binary-name }}
         DEB_CONTROL_TEMPLATE: ${{ inputs.deb-control-template }}
         RPM_SPEC_TEMPLATE: ${{ inputs.rpm-spec-template }}

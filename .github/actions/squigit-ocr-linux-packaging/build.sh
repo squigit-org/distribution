@@ -46,7 +46,8 @@ render_template() {
 
 OCR_NAME="squigit-ocr"
 require_env OCR_VERSION
-require_env RUNTIME_DIR
+require_env DEB_RUNTIME_DIR
+require_env RPM_RUNTIME_DIR
 require_env BINARY_NAME
 require_env DEB_CONTROL_TEMPLATE
 require_env RPM_SPEC_TEMPLATE
@@ -56,8 +57,12 @@ require_env DESCRIPTION_LINE_2
 require_env GITHUB_OUTPUT
 
 ARCH="amd64"
-if [ ! -d "$RUNTIME_DIR" ]; then
-  echo "Runtime directory not found: $RUNTIME_DIR" >&2
+if [ ! -d "$DEB_RUNTIME_DIR" ]; then
+  echo "Debian runtime directory not found: $DEB_RUNTIME_DIR" >&2
+  exit 1
+fi
+if [ ! -d "$RPM_RUNTIME_DIR" ]; then
+  echo "RPM runtime directory not found: $RPM_RUNTIME_DIR" >&2
   exit 1
 fi
 if [ ! -f "$DEB_CONTROL_TEMPLATE" ]; then
@@ -81,14 +86,15 @@ work_dir="${RUNNER_TEMP}/linux-ocr"
 rm -rf "$work_dir"
 mkdir -p "$work_dir"
 
-runtime_dir_abs="$(cd "$RUNTIME_DIR" && pwd)"
+deb_runtime_dir_abs="$(cd "$DEB_RUNTIME_DIR" && pwd)"
+rpm_runtime_dir_abs="$(cd "$RPM_RUNTIME_DIR" && pwd)"
 runtime_root="/usr/lib/${OCR_NAME}"
 runtime_internal="${runtime_root}/_internal"
 
 # Build .deb
 deb_root="${work_dir}/${OCR_NAME}-deb-root"
 mkdir -p "$deb_root/DEBIAN" "$deb_root/usr/lib/${OCR_NAME}" "$deb_root/usr/bin"
-cp -a "${runtime_dir_abs}/." "$deb_root/usr/lib/${OCR_NAME}/"
+cp -a "${deb_runtime_dir_abs}/." "$deb_root/usr/lib/${OCR_NAME}/"
 cat > "$deb_root/usr/bin/${BINARY_NAME}" <<EOF_WRAPPER
 #!/usr/bin/env bash
 export LD_LIBRARY_PATH="${runtime_internal}:${runtime_root}:\${LD_LIBRARY_PATH:-}"
@@ -110,7 +116,7 @@ mkdir -p "$rpm_top/BUILD" "$rpm_top/BUILDROOT" "$rpm_top/RPMS" "$rpm_top/SOURCES
 src_root_name="${OCR_NAME}-${OCR_VERSION}"
 src_root="${work_dir}/${src_root_name}"
 mkdir -p "$src_root/usr/lib/${OCR_NAME}" "$src_root/usr/bin"
-cp -a "${runtime_dir_abs}/." "$src_root/usr/lib/${OCR_NAME}/"
+cp -a "${rpm_runtime_dir_abs}/." "$src_root/usr/lib/${OCR_NAME}/"
 cat > "$src_root/usr/bin/${BINARY_NAME}" <<EOF_WRAPPER
 #!/usr/bin/env bash
 export LD_LIBRARY_PATH="${runtime_internal}:${runtime_root}:\${LD_LIBRARY_PATH:-}"
