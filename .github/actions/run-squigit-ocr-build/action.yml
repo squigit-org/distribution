@@ -1,0 +1,107 @@
+name: "Run Squigit OCR Build"
+description: "Dispatches the public Squigit OCR matrix and waits for its runtime artifacts"
+inputs:
+  token:
+    description: "GitHub token with Actions read/write access to the Squigit source repository"
+    required: true
+  repository:
+    description: "Source repository containing the OCR build workflow"
+    required: false
+    default: "squigit-org/squigit"
+  workflow:
+    description: "Source workflow file name"
+    required: false
+    default: "ocr-build-matrix.yml"
+  ref:
+    description: "Source branch, tag, or commit to build"
+    required: false
+    default: "main"
+  request-id:
+    description: "Unique identifier used to find the dispatched workflow run"
+    required: true
+  version:
+    description: "Native OCR version the source workflow must build"
+    required: true
+outputs:
+  run-id:
+    description: "Completed source workflow run ID"
+    value: ${{ steps.run.outputs.run_id }}
+  source-sha:
+    description: "Source commit built by the workflow"
+    value: ${{ steps.run.outputs.source_sha }}
+  run-url:
+    description: "Source workflow run URL"
+    value: ${{ steps.run.outputs.run_url }}
+runs:
+  using: "composite"
+  steps:
+    - name: Dispatch and wait for source build
+      id: run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        SOURCE_REPOSITORY: ${{ inputs.repository }}
+        SOURCE_WORKFLOW: ${{ inputs.workflow }}
+        SOURCE_REF: ${{ inputs.ref }}
+        REQUEST_ID: ${{ inputs.request-id }}
+        OCR_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${GH_TOKEN}" ]; then
+          echo "The source build token is empty." >&2
+          exit 1
+        fi
+
+        expected_title="OCR Runtime Build ${REQUEST_ID}"
+        gh workflow run "${SOURCE_WORKFLOW}" \
+          --repo "${SOURCE_REPOSITORY}" \
+          --ref "${SOURCE_REF}" \
+          -f "request_id=${REQUEST_ID}" \
+          -f "ocr_version=${OCR_VERSION}"
+
+        run_id=""
+        for attempt in $(seq 1 60); do
+          runs="$(gh run list \
+            --repo "${SOURCE_REPOSITORY}" \
+            --workflow "${SOURCE_WORKFLOW}" \
+            --event workflow_dispatch \
+            --limit 100 \
+            --json databaseId,displayTitle)"
+          run_id="$(printf '%s' "${runs}" | jq -r --arg title "${expected_title}" \
+            '[.[] | select(.displayTitle == $title)][0].databaseId // empty')"
+          if [ -n "${run_id}" ]; then
+            break
+          fi
+          if [ "${attempt}" -eq 60 ]; then
+            echo "Could not find the dispatched source build: ${expected_title}" >&2
+            exit 1
+          fi
+          sleep 5
+        done
+
+        for attempt in $(seq 1 240); do
+          details="$(gh run view "${run_id}" \
+            --repo "${SOURCE_REPOSITORY}" \
+            --json status,conclusion,headSha,url)"
+          status="$(printf '%s' "${details}" | jq -r '.status')"
+          conclusion="$(printf '%s' "${details}" | jq -r '.conclusion // empty')"
+          if [ "${status}" = "completed" ]; then
+            if [ "${conclusion}" != "success" ]; then
+              gh run view "${run_id}" --repo "${SOURCE_REPOSITORY}" --log-failed || true
+              echo "Source OCR build ${run_id} finished with ${conclusion}." >&2
+              exit 1
+            fi
+            source_sha="$(printf '%s' "${details}" | jq -r '.headSha')"
+            run_url="$(printf '%s' "${details}" | jq -r '.url')"
+            echo "run_id=${run_id}" >> "$GITHUB_OUTPUT"
+            echo "source_sha=${source_sha}" >> "$GITHUB_OUTPUT"
+            echo "run_url=${run_url}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${attempt}" -eq 240 ]; then
+            echo "Timed out waiting for source OCR build ${run_id}." >&2
+            exit 1
+          fi
+          sleep 15
+        done
