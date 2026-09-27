@@ -1,4 +1,4 @@
-# Squigit 26.08.23
+# Squigit 26.09.23
 
 > **Mock release notes for interface review.** The sections below are sample content for checking Markdown rendering and the update screen. They are not a record of shipped changes.
 
